@@ -201,7 +201,6 @@ func (c *CloudConfig) monitorConfigChange() {
 					fmt.Println("Couldnt handle New config") //Reason can be returned from callback if required
 					return
 				}
-				fmt.Println("Mbee app name is changed ", e.Name, e.Op)
 			}
 		})
 	}
