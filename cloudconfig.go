@@ -105,7 +105,7 @@ func (c *CloudConfig) RegisterConfigChange(args ...interface{}) error {
 	} else if c.configLocation == RemoteConfig {
 		err := c.viDynamic.ReadRemoteConfig()
 		if err != nil {
-			returnErr("Could Not Read from Remote Config", err)
+			return returnErr("Could Not Read from Remote Config", err)
 		}
 		go c.monitorRemoteConfigChange()
 	} else {
@@ -118,27 +118,25 @@ func (c *CloudConfig) RegisterConfigChange(args ...interface{}) error {
 }
 
 func (c *CloudConfig) newConfigHandler(configLoc string) error {
-	fmt.Println("in newConfigHandler")
 	var viTemp *viper.Viper
 	var err error
 	dynConf := false
 	if c.configLocation == LocalConfig {
-		fmt.Println("Local newConfigHandler")
 		if err = c.vi.ReadInConfig(); err != nil {
-			returnErr("Could Not Read Local Config ", err)
+			return returnErr("Could Not Read Local Config ", err)
 		}
 		viTemp = c.vi
 	} else if c.configLocation == RemoteConfig {
 		err := c.viDynamic.ReadRemoteConfig()
 		if err != nil {
-			returnErr("Could Not Read from Remote Config", err)
+			return returnErr("Could Not Read from Remote Config", err)
 		}
 		viTemp = c.viDynamic
 	} else {
 		if err = c.vi.ReadInConfig(); err != nil {
 			err := c.viDynamic.ReadRemoteConfig()
 			if err != nil {
-				returnErr("Could Not Read from Local/Remote Config", err)
+				return returnErr("Could Not Read from Local/Remote Config", err)
 			}
 			viTemp = c.viDynamic
 			dynConf = true
@@ -150,7 +148,7 @@ func (c *CloudConfig) newConfigHandler(configLoc string) error {
 	}
 	err = viTemp.Unmarshal(&c.AppConfig)
 	if err != nil {
-		returnErr("Failed to Unmarshal the remote config ", err)
+		return returnErr("Failed to Unmarshal the remote config ", err)
 	}
 	return nil
 }
@@ -158,7 +156,6 @@ func (c *CloudConfig) newConfigHandler(configLoc string) error {
 func (c *CloudConfig) monitorRemoteConfigChange() {
 	configChanged := make(chan bool)
 	for {
-		fmt.Println("in monitorRemoteConfigChange")
 		time.Sleep(time.Second * 5) // delay after each request
 
 		// currently, only tested with etcd support
@@ -195,7 +192,6 @@ func (c *CloudConfig) monitorConfigChange() {
 					c.reloadOrigConfig(c.AppConfig)
 					return
 				}
-				fmt.Println("Before crash ", c.AppConfig)
 				configChangedHandled := c.cbk(c.AppConfig)
 				if !configChangedHandled {
 					fmt.Println("Couldnt handle New config") //Reason can be returned from callback if required
