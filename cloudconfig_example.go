@@ -24,7 +24,7 @@ var app2 Config
 
 func main() {
 	// Will go with below way to advertise viper config for now
-	temp1 := cloudconfig.RemoteProvider{URL: "http://localhost:4001", Path: "/confignew2/wsproxy"}
+	temp1 := cloudconfig.RemoteProvider{URL: "http://localhost:4001", Path: "/confignew2/test"}
 	remoteConf := map[string]interface{}{"etcd": temp1}
 	viperConfig := map[string]interface{}{"localpath": "/home/user/go_exercise/viper_sample/cfg",
 		"localpath_filename":  "wsproxy",

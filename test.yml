@@ -1,0 +1,12 @@
+hacker: true
+clothing: 
+  jacket: leather
+  pants: 
+    age: 35
+    beard: true
+    eyes: brown
+    size: large
+  trousers: denim
+name: steve
+newconf:
+  jacket: leather
