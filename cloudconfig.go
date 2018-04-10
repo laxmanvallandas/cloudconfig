@@ -203,7 +203,7 @@ func (c *CloudConfig) monitorConfigChange() {
 }
 
 func (c *CloudConfig) reloadOrigConfig(cfg interface{}) {
-	file, err := c.vi.GetConfigFileTest()
+	file, err := c.vi.GetConfigFile()
 	if err != nil {
 		fmt.Println("Could not get the old config file to reload")
 		return
