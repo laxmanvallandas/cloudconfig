@@ -10,7 +10,7 @@ import (
 	_ "github.com/spf13/viper/remote"
 )
 
-//ConfigChangeCbk ...
+//ConfigChangeCbk Callback api to get invoked during config change at Local/Remote 
 type ConfigChangeCbk func(appConfig interface{}) bool
 
 //CloudConfig - Wrapper config
@@ -45,7 +45,6 @@ const (
 
 //InitCloudConfig - Api to be called from application
 func InitCloudConfig(viperConfig map[string]interface{}, appConf interface{}, configLoc string) *CloudConfig {
-
 	cc := &CloudConfig{vi: viper.New(), AppConfig: appConf, viDynamic: viper.New(), configLocation: configLoc}
 	cc.populateViperConfig(viperConfig)
 	err := cc.newConfigHandler(configLoc)
