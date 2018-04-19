@@ -3,14 +3,17 @@ package cloudconfig
 import (
 	"errors"
 	"fmt"
-	"time"
-	"sync"
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
+	"io"
+	"net/http"
+	"os"
+	"sync"
+	"time"
 )
 
-//ConfigChangeCbk callback api to invoke application for config change events
+//ConfigChangeCbk ...
 type ConfigChangeCbk func(appConfig interface{}) bool
 
 //CloudConfig - Wrapper config
@@ -33,10 +36,12 @@ type RemoteProvider struct {
 	URL  string
 	Path string
 }
+
 var (
-	viDynamic *viper.Viper= viper.New()
-	viLocal *viper.Viper = viper.New()
+	viRemote *viper.Viper = viper.New()
+	viLocal  *viper.Viper = viper.New()
 )
+
 const (
 	//LocalConfig -signifies Application preference to read config from local
 	LocalConfig = "local"
@@ -49,7 +54,7 @@ const (
 //InitCloudConfig - Api to be called from application
 func InitCloudConfig(viperConfig map[string]interface{}, appConf interface{}, configLoc string) *CloudConfig {
 
-	cc := &CloudConfig{Vi:viper.New(), AppConfig: appConf, configLocation: configLoc, ConfigLock: new(sync.RWMutex)}
+	cc := &CloudConfig{AppConfig: appConf, configLocation: configLoc, ConfigLock: new(sync.RWMutex)}
 	cc.populateViperConfig(viperConfig)
 	err := cc.newConfigHandler(configLoc)
 	if err != nil {
@@ -60,34 +65,28 @@ func InitCloudConfig(viperConfig map[string]interface{}, appConf interface{}, co
 }
 
 func (c *CloudConfig) populateViperConfig(viperConfig map[string]interface{}) {
-	fmt.Println("viper Config", viperConfig)
 	for k, v := range viperConfig {
 		switch k {
 		case "localpath":
-			fmt.Println("local path ", v.(string))
 			viLocal.AddConfigPath(v.(string))
 		case "localpath_filetype":
 			viLocal.SetConfigType(v.(string))
 		case "localpath_filename":
-			fmt.Println(v.(string))
 			viLocal.SetConfigName(v.(string))
 		case "localpath_filewithtype":
 			viLocal.SetConfigFile(v.(string))
 		case "remotepath": //map[string]map[string]interface{} -> remotepath: etcd/consul: address
 			for k2, v2 := range v.(map[string]interface{}) {
 				remoteInfo := v2.(RemoteProvider)
-				fmt.Println(remoteInfo)
-				viDynamic.AddRemoteProvider(k2, remoteInfo.URL, remoteInfo.Path)
+				viRemote.AddRemoteProvider(k2, remoteInfo.URL, remoteInfo.Path)
 			}
 		case "remote_filetype":
-			viDynamic.SetConfigType(v.(string))
+			viRemote.SetConfigType(v.(string))
 		case "remote_filename":
-			fmt.Println(v.(string))
-			viDynamic.SetConfigName(v.(string))
+			viRemote.SetConfigName(v.(string))
 		case "remote_filewithtype":
-			viDynamic.SetConfigFile(v.(string))
+			viRemote.SetConfigFile(v.(string))
 		case "enabledynamicconfig":
-			fmt.Println("enable dynamic config ? ", v.(bool))
 			c.Info.EnableDynamicConfig = v.(bool)
 		}
 	}
@@ -110,7 +109,7 @@ func (c *CloudConfig) RegisterConfigChange(args ...interface{}) error {
 		}
 		go c.monitorRemoteConfigChange()
 	} else {
-		c.Vi.WatchConfig()
+		viLocal.WatchConfig()
 		go c.monitorConfigChange() //this should go to thread
 
 		go c.monitorRemoteConfigChange()
@@ -120,29 +119,29 @@ func (c *CloudConfig) RegisterConfigChange(args ...interface{}) error {
 
 func (c *CloudConfig) newConfigHandler(configLoc string) error {
 	var err error
-	dynConf := false
+	remoteConf := false
 	if c.configLocation == LocalConfig {
 		if err = viLocal.ReadInConfig(); err != nil {
 			return returnErr("Could Not Read Local Config ", err)
 		}
 		c.Vi = viLocal
 	} else if c.configLocation == RemoteConfig {
-		err := viDynamic.ReadRemoteConfig()
+		err := viRemote.ReadRemoteConfig()
 		if err != nil {
 			return returnErr("Could Not Read from Remote Config", err)
 		}
-		c.Vi = viDynamic
+		c.Vi = viRemote
 	} else {
 		if err = viLocal.ReadInConfig(); err != nil {
-			err := viDynamic.ReadRemoteConfig()
+			err := viRemote.ReadRemoteConfig()
 			if err != nil {
 				return returnErr("Could Not Read from Local/Remote Config", err)
 			}
-			dynConf = true
+			remoteConf = true
 		}
-		if dynConf {
-			c.Vi = viDynamic
-		}else{
+		if remoteConf {
+			c.Vi = viRemote
+		} else {
 			c.Vi = viLocal
 		}
 	}
@@ -154,54 +153,54 @@ func (c *CloudConfig) newConfigHandler(configLoc string) error {
 }
 
 func (c *CloudConfig) monitorRemoteConfigChange() {
+	err := viRemote.ReadRemoteConfig()
+	if err != nil {
+		return
+	}
+
 	configChanged := make(chan bool)
 	for {
 		time.Sleep(time.Second * 5) // delay after each request
 
 		// currently, only tested with etcd support
-		err := c.Vi.WatchRemoteConfigOnChannel(configChanged)
+		err := viRemote.WatchRemoteConfigOnChannel(configChanged)
 		if err != nil {
-			fmt.Println("unable to read remote config: ", err)
 			continue
 		}
 		if !<-configChanged {
 			continue
 		}
 
-		fmt.Println("Received config change event, unmarshalling new config")
-		err = c.Vi.Unmarshal(&c.AppConfig)
-		if err!= nil{
-			fmt.Println("Error in Unmarshalling new Remote Config..")
+		err = viRemote.Unmarshal(&c.AppConfig)
+		if err != nil {
 			continue
 		}
 
-		//	fmt.Println(c.viDynamic.GetStringMap("newconf"))
+		//	fmt.Println(c.viRemote.GetStringMap("newconf"))
 		configChangedHandled := c.cbk(c.AppConfig)
 		if !configChangedHandled {
-			fmt.Println("Couldnt handle New config") //Reason can be returned from callback if required
 			return
 		}
+		c.Vi = viRemote
 
 	}
 }
 
 func (c *CloudConfig) monitorConfigChange() {
-	c.Vi = viLocal
 	for {
 		time.Sleep(5 * time.Second)
 		c.Vi.OnConfigChange(func(e fsnotify.Event) {
 			if e.Op&fsnotify.Write == fsnotify.Write {
 				err := c.newConfigHandler(LocalConfig)
 				if err != nil {
-					fmt.Println("found fault in new config , reloading old config ", err)
 					c.reloadOrigConfig(c.AppConfig)
 					return
 				}
 				configChangedHandled := c.cbk(c.AppConfig)
 				if !configChangedHandled {
-					fmt.Println("Couldnt handle New config") //Reason can be returned from callback if required
 					return
 				}
+				c.Vi = viLocal
 			}
 		})
 	}
@@ -210,15 +209,12 @@ func (c *CloudConfig) monitorConfigChange() {
 func (c *CloudConfig) reloadOrigConfig(cfg interface{}) {
 	file, err := c.Vi.GetAppConfigFile()
 	if err != nil {
-		fmt.Println("Could not get the old config file to reload")
 		return
 	}
 	err = c.Vi.WriteConfigAs(file)
 	if err != nil {
-		fmt.Println("couldn't save the original config", err)
 		return
 	}
-
 	c.newConfigHandler(LocalConfig)
 }
 
@@ -230,4 +226,32 @@ func (c *CloudConfig) GetAppConfig() interface{} {
 func returnErr(str string, err error) error {
 	fmt.Println("Error: ", str, "Reason:", err)
 	return err
+}
+
+func (cc *CloudConfig) GetCurrentRunningConf(w http.ResponseWriter, r *http.Request) {
+	f, err := os.Create("/tmp/currentconfig.json")
+	if err != nil {
+		fmt.Println("could not create file")
+		return
+	}
+	fmt.Println("cc is ", cc)
+	err = cc.Vi.WriteConfigAs("/tmp/currentconfig.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	defer f.Close()
+
+	file, err := os.Open("/tmp/currentconfig.json")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	n, err := io.Copy(w, file)
+	if err != nil {
+		fmt.Println("error in copying from file response writer ", err)
+		return
+	}
+	fmt.Println(n)
 }
