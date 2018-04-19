@@ -3,6 +3,8 @@ package main
 import (
 	"cloudconfig"
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 )
@@ -34,7 +36,7 @@ func main() {
 		"remote_filetype":     "json"} //Remote can be json
 
 	app := Config{}
-	cc := cloudconfig.InitCloudConfig(viperConfig, &app, cloudconfig.Config)
+	cc := cloudconfig.InitCloudConfig(viperConfig, &app, cloudconfig.LocalConfig)
 	app2 = Config(app) // this should be configuration that app must use
 
 	fmt.Println(app2)
@@ -46,6 +48,8 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	http.HandleFunc("/getconfig", cc.GetCurrentRunningConf)
+	log.Fatal(http.ListenAndServe(":8080", nil))
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt)
 	<-signals
