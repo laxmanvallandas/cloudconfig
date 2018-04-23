@@ -1,35 +1,68 @@
-What is it?
+cloudconfig For MicroServices
+=============================
+
+BACKGROUND
+-------------
 cloudconfig is a Cloud Configuration Wrapper library built on Viper library to support Local and Remote Configuration Loading and also for Dynamic Configuration.
 Library also provides Rest Interface using which client can get current runnig configuration.
 
-Workarounds in Viper:
-Before using Wrapper, apply below viper.patch to Viper Library, also export getConfigFile api. by making GetConfigFile() or GetAppConfigFile() in viper as given below:
 
-func (v *viper)GetConfigFile(string, error){
-        return v.getConfigFile()
-}
+PREREQUISITES
+-------------
 
-App should use "newconf" struct with possible dynamic config parameters. 
+- This requires Go 1.5 or later
+- Requires that [GOPATH is set](https://golang.org/doc/code.html#GOPATH)
+- Apply viper patch provided (https://github.com/laxmanvallandas/cloudconfig/blob/master/viper.patch to github.com/spf13/viper)
+- App should use "newconf" struct with possible dynamic config parameters.
+```
+$ go help gopath
+$ # ensure the PATH contains $GOPATH/bin
+$ export PATH=$PATH:$GOPATH/bin
+```
 
-Library supports and test scenarios:
-1: Load config file from local path.
+INSTALL
+-------
 
-2: Fail to load config file if config in local path is an invalid file format.(eg.invalid json). Revert back to working config file in local path.
+```
+$ wget github.com/laxmanvallandas/cloudconfig/examples/cloudconfig_example.go 
+```
 
-3: Modify the local config file with new values in “newconf”, verify the callback invoked with new values in “newconf” struct in callback.
+TRY IT!
+-------
 
-4: Modify the local config file with new values in “newconf” and make a invalid file format(eg. Invalid json/yml), 
-        verify the callback invoked but throws an error and revert the configuration to old valid config.
+- Run the sample application
 
-5: Load config file from Remote Path served by etcd.
+```
+$ go build cloudconfig_example.go
+$ Look for the env's to set ./cloudconfig_example --help
+$ ./cloudconfig_example
+```
 
-6: Fail to load config file if config in remote is an invalid file format (eg. Invalid json)
+- Get the configuration using http://<ip>:8080/getconfig
+- Modify the configuration Local/Remote (based on your env settings) and you should see event generated to application.
 
-7: Modify the remote config file with new values in “newconf”, verify the callback invoked with new values in “newconf” struct in callback.
+```
 
-8: Modify the remote config file with new values in “newconf”, and make a invalid file format format(eg. Invalid json/yml), 
+Serves Following Purpose:
+----------------------------------------
+1 Load config file from local path.
+
+2 Fail to load config file if config in local path is an invalid file format.(eg.invalid json). Revert back to working config file in local path.
+
+3 Modify the local config file with new values in “newconf”, verify the callback invoked with new values in “newconf” struct in callback.
+
+4 Modify the local config file with new values in “newconf” and make a invalid file format(eg. Invalid json/yml),  verify the callback invoked but throws an error and revert the configuration to old valid config.
+
+5 Load config file from Remote Path served by etcd.
+
+6 Fail to load config file if config in remote is an invalid file format (eg. Invalid json)
+
+7 Modify the remote config file with new values in “newconf”, verify the callback invoked with new values in “newconf” struct in callback.
+
+8 Modify the remote config file with new values in “newconf”, and make a invalid file format format(eg. Invalid json/yml), 
         verify the callback invoked but throws an error.
 
-9: Disable dynamic configuration and any effect in local/remote config file should not invoke callback.
+9 Disable dynamic configuration and any effect in local/remote config file should not invoke callback.
 
-10: Get the Current running configuration via REST (http://<ip>:8080/getconfig)
+
+```

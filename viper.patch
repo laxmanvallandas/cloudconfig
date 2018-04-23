@@ -1,33 +1,93 @@
 diff --git a/viper.go b/viper.go
-index e9966ba..27f72fb 100644
+index e9966ba..c904699 100644
 --- a/viper.go
 +++ b/viper.go
+@@ -24,6 +24,7 @@ import (
+ 	"encoding/csv"
+ 	"encoding/json"
+ 	"fmt"
++	"errors"
+ 	"io"
+ 	"log"
+ 	"os"
+@@ -389,7 +390,6 @@ func (v *Viper) AddRemoteProvider(provider, endpoint, path string) error {
+ 	}
+ 	return nil
+ }
+-
+ // AddSecureRemoteProvider adds a remote configuration source.
+ // Secure Remote Providers are searched in the order they are added.
+ // provider is a string value, "etcd" or "consul" are currently supported.
 @@ -1497,8 +1497,8 @@ func (v *Viper) WatchRemoteConfig() error {
-        return v.watchKeyValueConfig()
+ 	return v.watchKeyValueConfig()
  }
  
 -func (v *Viper) WatchRemoteConfigOnChannel() error {
--       return v.watchKeyValueConfigOnChannel()
+-	return v.watchKeyValueConfigOnChannel()
 +func (v *Viper) WatchRemoteConfigOnChannel(configChanged chan<- bool) error {
-+       return v.watchKeyValueConfigOnChannel(configChanged)
++	return v.watchKeyValueConfigOnChannel(configChanged)
  }
  
  func (v *Viper) insensitiviseMaps() {
-@@ -1535,7 +1535,7 @@ func (v *Viper) getRemoteConfig(provider RemoteProvider) (map[string]interface{}
+@@ -1534,8 +1534,19 @@ func (v *Viper) getRemoteConfig(provider RemoteProvider) (map[string]interface{}
+ 	return v.kvstore, err
  }
  
++func (v *Viper)GetRemoteConf() (io.Reader, error) {
++        for _, rp := range v.remoteProviders {
++	        reader, err := RemoteConfig.Get(rp)
++	        if err != nil {
++			continue
++        	}
++		return reader, nil
++	}
++        return nil, errors.New("Did not find Remote config")
++}
++
  // Retrieve the first found remote configuration.
 -func (v *Viper) watchKeyValueConfigOnChannel() error {
 +func (v *Viper) watchKeyValueConfigOnChannel(configChanged chan<- bool) error {
-        for _, rp := range v.remoteProviders {
-                respc, _ := RemoteConfig.WatchChannel(rp)
-                //Todo: Add quit channel
-@@ -1544,6 +1544,7 @@ func (v *Viper) watchKeyValueConfigOnChannel() error {
-                                b := <-rc
-                                reader := bytes.NewReader(b.Value)
-                                v.unmarshalReader(reader, v.kvstore)
-+                               configChanged <- true
-                        }
-                }(respc)
-                return nil
-
+ 	for _, rp := range v.remoteProviders {
+ 		respc, _ := RemoteConfig.WatchChannel(rp)
+ 		//Todo: Add quit channel
+@@ -1544,6 +1555,7 @@ func (v *Viper) watchKeyValueConfigOnChannel() error {
+ 				b := <-rc
+ 				reader := bytes.NewReader(b.Value)
+ 				v.unmarshalReader(reader, v.kvstore)
++				configChanged <- true
+ 			}
+ 		}(respc)
+ 		return nil
+@@ -1700,6 +1712,10 @@ func (v *Viper) SetConfigType(in string) {
+ 	}
+ }
+ 
++func (v *Viper) GetConfigType() string {
++        return v.getConfigType()
++}
++
+ func (v *Viper) getConfigType() string {
+ 	if v.configType != "" {
+ 		return v.configType
+@@ -1719,6 +1735,21 @@ func (v *Viper) getConfigType() string {
+ 	return ""
+ }
+ 
++func (v *Viper) GetAppConfigFile() (string, error) {
++        if v.configFile == "" {
++                cf, err := v.findConfigFile()
++                if err != nil {
++                        return "", err
++                }
++                v.configFile = cf
++        }
++        return v.configFile, nil
++}
++/*
++func (v *Viper)GetConfigFile(string, error){
++	return v.getConfigFile()
++}
++*/
+ func (v *Viper) getConfigFile() (string, error) {
+ 	if v.configFile == "" {
+ 		cf, err := v.findConfigFile()
