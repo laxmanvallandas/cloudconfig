@@ -1,5 +1,8 @@
-cloud Configuration Wrapper library built on Viper library to support Local and Remote Configuration Loading and also for Dynamic Configuration.
+What is it?
+cloudconfig is a Cloud Configuration Wrapper library built on Viper library to support Local and Remote Configuration Loading and also for Dynamic Configuration.
+Library also provides Rest Interface using which client can get current runnig configuration.
 
+Workarounds in Viper:
 Before using Wrapper, apply below viper.patch to Viper Library, also export getConfigFile api. by making GetConfigFile() or GetAppConfigFile() in viper as given below:
 
 func (v *viper)GetConfigFile(string, error){
@@ -29,4 +32,4 @@ Library supports and test scenarios:
 
 9: Disable dynamic configuration and any effect in local/remote config file should not invoke callback.
 
-
+10: Get the Current running configuration via REST (http://<ip>:8080/getconfig)
