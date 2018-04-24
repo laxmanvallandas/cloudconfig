@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
-	_ "github.com/spf13/viper/remote"
+	"github.com/laxmanvallandas/viper"
+	_ "github.com/laxmanvallandas/viper/remote"
 	"io"
 	"net/http"
 	"os"
@@ -254,4 +254,54 @@ func (cc *CloudConfig) GetCurrentRunningConf(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	fmt.Println(n)
+}
+
+func (cc *CloudConfig) GetConfig(configKey string, w http.ResponseWriter) {
+	var vi *viper.Viper
+	fmt.Println("config key ", configKey)
+	if cc.Vi.IsSet(configKey) {
+		vi = cc.Vi.Sub(configKey)
+		vi.SetConfigType(cc.Vi.GetConfigType())
+		err := getConfig(w, vi)
+		if err != nil {
+			fmt.Println("Could not Get requested Config: ", err)
+			return
+		}
+	} else if configKey == "" {
+		err := getConfig(w, cc.Vi)
+		if err != nil {
+			fmt.Println("Could not Get requested Config: ", err)
+			return
+		}
+	} else {
+		http.Error(w, "Config Not Found", 400)
+	}
+}
+
+func getConfig(w http.ResponseWriter, v *viper.Viper) error {
+	f, err := os.Create("/tmp/config." + v.GetConfigType())
+	if err != nil {
+		http.Error(w, "Could not Get Current Config file : "+err.Error(), 500)
+		return err
+	}
+	defer f.Close()
+
+	err = v.WriteConfigAs("/tmp/config." + v.GetConfigType())
+	if err != nil {
+		http.Error(w, "Could not Get Current Config file : "+err.Error(), 500)
+		return err
+	}
+
+	file, err := os.Open("/tmp/config." + v.GetConfigType())
+	if err != nil {
+		http.Error(w, "Could not Get Current Config file : "+err.Error(), 500)
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	_, err = io.Copy(w, file)
+	if err != nil {
+		http.Error(w, "Could not Get Current Config file : "+err.Error(), 500)
+		return err
+	}
+	return nil
 }
