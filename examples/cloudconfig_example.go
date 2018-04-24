@@ -1,7 +1,8 @@
 package main
 
 import (
-	"cloudconfig"
+	"github.com/laxmanvallandas/cloudconfig"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,18 +26,32 @@ var cc *cloudconfig.CloudConfig
 var app2 Config
 
 func main() {
+	var remoteUrl, remotePath, localPath, localFileName, localFileType, remoteFileType, configLocation string
+	var dynamicCfg bool
+
+	flag.StringVar(&remoteUrl, "cfgRemoteUrl", os.Getenv("CFG_REMOTE_URL"), "CFG_REMOTE_URL, Remote URL of etcd/Consul")
+	flag.StringVar(&remotePath, "cfgRemotePath", os.Getenv("CFG_REMOTE_PATH"), "CFG_REMOTE_PATH, Key for ETCD or Consul")
+	flag.StringVar(&localPath, "cfgLocalPath", os.Getenv("CFG_LOCAL_PATH"), "CFG_LOCAL_PATH, Path from which to read the config")
+	flag.StringVar(&localFileName, "cfgLocalFileName", os.Getenv("CFG_LOCAL_FILENAME"), "CFG_LOCAL_FILENAME, Local FileName of Configuration without extension or filetype")
+	flag.BoolVar(&dynamicCfg, "cfgDynamicConfig", true, "Enable or disable dynamic configuration by setting true or false")
+	flag.StringVar(&localFileType, "cfgLocalFileType", os.Getenv("CFG_LOCAL_FILETYPE"), "CFG_LOCAL_FILETYPE, Local Filetype")
+	flag.StringVar(&remoteFileType, "cfgremoteFileType", os.Getenv("CFG_REMOTE_FILETYPE"), "CFG_REMOTE_FILETYPE, Remote Filetype")
+	flag.StringVar(&configLocation, "cfgConfigLocation", os.Getenv("CFG_CONFIG_LOCATION"), "CFG_CONFIG_LOCATION, Location of Configuration to pick from, local/remote. Empty means Local by default and tries Remote when local fails")
+
+	flag.Parse()
+
 	// Will go with below way to advertise viper config for now
-	temp1 := cloudconfig.RemoteProvider{URL: "http://localhost:4001", Path: "/confignew2/test"}
-	remoteConf := map[string]interface{}{"etcd": temp1}
-	viperConfig := map[string]interface{}{"localpath": "/home/user/go_exercise/viper_sample/cfg",
-		"localpath_filename":  "wsproxy",
+	remoteCfgParams := cloudconfig.RemoteProvider{URL: remoteUrl, Path: remotePath}
+	remoteConf := map[string]interface{}{"etcd": remoteCfgParams}
+	viperConfig := map[string]interface{}{"localpath": localPath,
+		"localpath_filename":  localFileName,
 		"enabledynamicconfig": true,
 		"remotepath":          remoteConf,
-		"filetype":            "yml",  //Local can be yml
-		"remote_filetype":     "json"} //Remote can be json
+		"filetype":            localFileType,  //Local can be yml
+		"remote_filetype":     remoteFileType} //Remote can be json
 
 	app := Config{}
-	cc := cloudconfig.InitCloudConfig(viperConfig, &app, cloudconfig.LocalConfig)
+	cc := cloudconfig.InitCloudConfig(viperConfig, &app, configLocation)
 	app2 = Config(app) // this should be configuration that app must use
 
 	fmt.Println(app2)

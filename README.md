@@ -12,7 +12,6 @@ PREREQUISITES
 
 - This requires Go 1.5 or later
 - Requires that [GOPATH is set](https://golang.org/doc/code.html#GOPATH)
-- Apply viper patch provided (https://github.com/laxmanvallandas/cloudconfig/blob/master/viper.patch to github.com/spf13/viper)
 - App should use "newconf" struct with possible dynamic config parameters.
 ```
 $ go help gopath
@@ -24,7 +23,9 @@ INSTALL
 -------
 
 ```
-$ wget github.com/laxmanvallandas/cloudconfig/examples/cloudconfig_example.go 
+$ go get github.com/laxmanvallandas/cloudconfig
+$ cd $GOPATH/src/github.com/laxmanvallandas/cloudconfig/examples
+
 ```
 
 TRY IT!
