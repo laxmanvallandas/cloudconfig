@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/laxmanvallandas/cloudconfig"
 	"flag"
 	"fmt"
+	"github.com/laxmanvallandas/cloudconfig"
 	"log"
 	"net/http"
 	"os"
@@ -51,7 +51,11 @@ func main() {
 		"remote_filetype":     remoteFileType} //Remote can be json
 
 	app := Config{}
-	cc := cloudconfig.InitCloudConfig(viperConfig, &app, configLocation)
+	cc, err := cloudconfig.InitCloudConfig(viperConfig, &app, configLocation)
+	if err != nil {
+		fmt.Println("Couldn't Initialise Cloud Config, Reason: ", err)
+		os.Exit(1)
+	}
 	app2 = Config(app) // this should be configuration that app must use
 
 	fmt.Println(app2)

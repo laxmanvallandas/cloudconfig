@@ -52,16 +52,16 @@ const (
 )
 
 //InitCloudConfig - Api to be called from application
-func InitCloudConfig(viperConfig map[string]interface{}, appConf interface{}, configLoc string) *CloudConfig {
+func InitCloudConfig(viperConfig map[string]interface{}, appConf interface{}, configLoc string) (*CloudConfig, error) {
 
 	cc := &CloudConfig{AppConfig: appConf, configLocation: configLoc, ConfigLock: new(sync.RWMutex)}
 	cc.populateViperConfig(viperConfig)
 	err := cc.newConfigHandler(configLoc)
 	if err != nil {
 		fmt.Println("Could not Load Local config...", err, " Trying remote")
-		return nil
+		return nil, err
 	}
-	return cc
+	return cc, nil
 }
 
 func (c *CloudConfig) populateViperConfig(viperConfig map[string]interface{}) {
