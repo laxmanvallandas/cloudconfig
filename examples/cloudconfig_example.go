@@ -24,7 +24,7 @@ type DynamicConf struct {
 }
 
 var cc *cloudconfig.CloudConfig
-var app2 Config
+var app Config
 
 func main() {
 	var remoteURL, remotePath, localPath, localFileName, localFileType, remoteFileType, configLocation string
@@ -51,15 +51,13 @@ func main() {
 		"filetype":            localFileType,  //Local can be yml
 		"remote_filetype":     remoteFileType} //Remote can be json
 
-	app := Config{}
 	cc, err := cloudconfig.InitCloudConfig(viperConfig, &app, configLocation)
 	if err != nil {
 		fmt.Println("Couldn't Initialise Cloud Config, Reason: ", err)
 		os.Exit(1)
 	}
-	app2 = Config(app) // this should be configuration that app must use
 
-	fmt.Println(app2)
+	fmt.Println(app) // this should be configuration that app must use
 
 	if cc.Info.EnableDynamicConfig {
 		err := cc.RegisterConfigChange(dynamicConfigHandler)
@@ -79,7 +77,7 @@ func dynamicConfigHandler(appConf interface{}) bool {
 	newconfig := appConf.(*Config)
 	//Start playing with dynamic Configuration received as newconfig.NewConf ,
 
-	// Remember to populate your main config,  app2
+	// Remember to populate your main config,  app
 	fmt.Println(newconfig)
 
 	return true
