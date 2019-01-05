@@ -3,11 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/laxmanvallandas/cloudconfig"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+
+	"github.com/laxmanvallandas/cloudconfig"
 )
 
 // Config - Main config structure
@@ -26,10 +27,10 @@ var cc *cloudconfig.CloudConfig
 var app2 Config
 
 func main() {
-	var remoteUrl, remotePath, localPath, localFileName, localFileType, remoteFileType, configLocation string
+	var remoteURL, remotePath, localPath, localFileName, localFileType, remoteFileType, configLocation string
 	var dynamicCfg bool
 
-	flag.StringVar(&remoteUrl, "cfgRemoteUrl", os.Getenv("CFG_REMOTE_URL"), "CFG_REMOTE_URL, Remote URL of etcd/Consul")
+	flag.StringVar(&remoteURL, "cfgRemoteUrl", os.Getenv("CFG_REMOTE_URL"), "CFG_REMOTE_URL, Remote URL of etcd/Consul")
 	flag.StringVar(&remotePath, "cfgRemotePath", os.Getenv("CFG_REMOTE_PATH"), "CFG_REMOTE_PATH, Key for ETCD or Consul")
 	flag.StringVar(&localPath, "cfgLocalPath", os.Getenv("CFG_LOCAL_PATH"), "CFG_LOCAL_PATH, Path from which to read the config")
 	flag.StringVar(&localFileName, "cfgLocalFileName", os.Getenv("CFG_LOCAL_FILENAME"), "CFG_LOCAL_FILENAME, Local FileName of Configuration without extension or filetype")
@@ -41,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	// Will go with below way to advertise viper config for now
-	remoteCfgParams := cloudconfig.RemoteProvider{URL: remoteUrl, Path: remotePath}
+	remoteCfgParams := cloudconfig.RemoteProvider{URL: remoteURL, Path: remotePath}
 	remoteConf := map[string]interface{}{"etcd": remoteCfgParams}
 	viperConfig := map[string]interface{}{"localpath": localPath,
 		"localpath_filename":  localFileName,
