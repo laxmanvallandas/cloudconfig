@@ -6,7 +6,6 @@ BACKGROUND
 cloudconfig is a Cloud Configuration Wrapper library built on Viper library to support Local and Remote Configuration Loading and also for Dynamic Configuration.
 Library also provides Rest Interface using which client can get current runnig configuration.
 
-
 PREREQUISITES
 -------------
 
