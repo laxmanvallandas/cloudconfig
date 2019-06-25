@@ -12,6 +12,7 @@ PREREQUISITES
 
 - This requires Go 1.5 or later
 - Requires that [GOPATH is set](https://golang.org/doc/code.html#GOPATH)
+
 - App should use "newconf" struct with possible dynamic config parameters.
 ```
 $ go help gopath
